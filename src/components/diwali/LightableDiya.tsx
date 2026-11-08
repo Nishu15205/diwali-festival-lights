@@ -2,181 +2,181 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Flame } from 'lucide-react'
 
-type Spark = {
+type Ember = {
   id: number
   dx: number
   dy: number
   size: number
+  delay: number
 }
 
 export default function LightableDiya() {
   const [lit, setLit] = useState(false)
-  const [count, setCount] = useState(0)
-  const [sparks, setSparks] = useState<Spark[]>([])
-  const sparkId = useRef(0)
+  const [embers, setEmbers] = useState<Ember[]>([])
+  const [ringKey, setRingKey] = useState(0)
+  const emberId = useRef(0)
 
   const handleLight = useCallback(() => {
     if (!lit) {
-      // ignite
       setLit(true)
-      setCount((c) => c + 1)
-      // ignition sparks
-      const newSparks: Spark[] = Array.from({ length: 12 }, () => ({
-        id: sparkId.current++,
-        dx: (Math.random() * 60 - 30),
-        dy: -(30 + Math.random() * 50),
-        size: 2 + Math.random() * 2.5,
-      }))
-      setSparks(newSparks)
-      setTimeout(() => setSparks([]), 800)
-      // soft sky sparkle
+      setRingKey((k) => k + 1)
+
+      // warm screen flash
+      window.dispatchEvent(
+        new CustomEvent('diwali:flash', {
+          detail: { color: 'rgba(251,191,36,0.5)', intensity: 0.7, duration: 520 },
+        }),
+      )
+      // sky firework
       window.dispatchEvent(
         new CustomEvent('diwali:launch-firework', { detail: { count: 1 } }),
       )
-    } else {
-      // already lit — relight with a little sparkle pop
-      setCount((c) => c + 1)
-      const newSparks: Spark[] = Array.from({ length: 8 }, () => ({
-        id: sparkId.current++,
-        dx: (Math.random() * 50 - 25),
-        dy: -(20 + Math.random() * 40),
-        size: 1.5 + Math.random() * 2,
+
+      // rising embers
+      const newEmbers: Ember[] = Array.from({ length: 16 }, () => ({
+        id: emberId.current++,
+        dx: (Math.random() * 70 - 35),
+        dy: -(120 + Math.random() * 160),
+        size: 2 + Math.random() * 3,
+        delay: Math.random() * 200,
       }))
-      setSparks((s) => [...s, ...newSparks])
-      setTimeout(() => setSparks((s) => s.filter((sp) => !newSparks.some((ns) => ns.id === sp.id))), 700)
+      setEmbers(newEmbers)
+      setTimeout(() => setEmbers([]), 1600)
+    } else {
+      // relight — ember pop + small flash
+      setRingKey((k) => k + 1)
+      window.dispatchEvent(
+        new CustomEvent('diwali:flash', {
+          detail: { color: 'rgba(253,224,71,0.35)', intensity: 0.4, duration: 280 },
+        }),
+      )
+      const newEmbers: Ember[] = Array.from({ length: 10 }, () => ({
+        id: emberId.current++,
+        dx: (Math.random() * 60 - 30),
+        dy: -(80 + Math.random() * 120),
+        size: 1.5 + Math.random() * 2.5,
+        delay: Math.random() * 120,
+      }))
+      setEmbers((e) => [...e, ...newEmbers])
+      setTimeout(() => setEmbers((e) => e.filter((em) => !newEmbers.some((ne) => ne.id === em.id))), 1200)
     }
   }, [lit])
 
   return (
-    <div className="relative flex flex-col items-center gap-3">
-      {/* the clickable diya */}
+    <div className="relative flex flex-col items-center">
+      {/* shockwave ring */}
+      <AnimatePresence>
+        {ringKey > 0 && (
+          <motion.div
+            key={ringKey}
+            initial={{ scale: 0, opacity: 0.85 }}
+            animate={{ scale: 3.4, opacity: 0 }}
+            transition={{ duration: 0.9, ease: 'easeOut' }}
+            className="pointer-events-none absolute left-1/2 top-1/2 z-20 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-300"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* rising embers */}
+      <div className="pointer-events-none absolute left-1/2 top-1/2 z-30 h-0 w-0">
+        <AnimatePresence>
+          {embers.map((em) => (
+            <motion.div
+              key={em.id}
+              initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+              animate={{ x: em.dx, y: em.dy, opacity: 0, scale: 0.3 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.4, delay: em.delay / 1000, ease: 'easeOut' }}
+              style={{
+                width: em.size,
+                height: em.size,
+                backgroundColor: '#fde047',
+                borderRadius: '50%',
+                boxShadow: '0 0 8px #fbbf24',
+              }}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* diya medallion */}
       <button
         onClick={handleLight}
-        aria-label={lit ? 'Diya jal gaya' : 'Diya jalao'}
-        className="group relative flex h-44 w-40 items-end justify-center rounded-2xl pb-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 sm:h-52 sm:w-48"
+        aria-label={lit ? 'Relight the diya' : 'Light the diya'}
+        className="group relative h-44 w-44 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 sm:h-52 sm:w-52"
       >
-        {/* expanding glow halo — grows when lit */}
+        {/* glow halo — grows dramatically when lit */}
         <motion.div
-          className="absolute left-1/2 top-[30%] -z-10 rounded-full"
-          animate={
-            lit
-              ? { opacity: 1, scale: 1 }
-              : { opacity: 0, scale: 0.3 }
-          }
+          className="absolute inset-0 rounded-full"
+          animate={lit ? { opacity: 1, scale: 1.15 } : { opacity: 0.35, scale: 1 }}
           transition={{ type: 'spring', stiffness: 120, damping: 14 }}
           style={{
-            width: 160,
-            height: 160,
-            transform: 'translateX(-50%)',
-            background:
-              'radial-gradient(circle, rgba(251,191,36,0.7) 0%, rgba(251,146,60,0.3) 40%, rgba(251,146,60,0) 70%)',
-            filter: 'blur(10px)',
+            background: 'radial-gradient(circle, rgba(251,191,36,0.7) 0%, rgba(251,146,60,0.3) 40%, rgba(251,146,60,0) 70%)',
+            filter: 'blur(16px)',
           }}
         />
-
-        {/* flame — grows from 0 when ignited */}
+        {/* breathing pulse when lit */}
+        {lit && (
+          <motion.div
+            className="absolute inset-0 rounded-full"
+            animate={{ opacity: [0.5, 0.8, 0.5], scale: [1.1, 1.25, 1.1] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            style={{
+              background: 'radial-gradient(circle, rgba(253,224,71,0.4) 0%, rgba(253,224,71,0) 60%)',
+              filter: 'blur(20px)',
+            }}
+          />
+        )}
+        {/* ring border — brightens when lit */}
+        <motion.div
+          className="absolute inset-2 rounded-full"
+          animate={lit ? { opacity: 1 } : { opacity: 0.5 }}
+          style={{
+            background: 'conic-gradient(from 0deg, #fbbf24, #fde047, #f97316, #fbbf24, #fff7ed, #fbbf24)',
+            padding: 2,
+          }}
+        >
+          <div className="h-full w-full rounded-full bg-[#0b0820]" />
+        </motion.div>
+        {/* diya image — dims when unlit, glows when lit */}
+        <motion.div
+          className="absolute inset-3 overflow-hidden rounded-full"
+          animate={
+            lit
+              ? { scale: 1, filter: 'brightness(1.15) saturate(1.1)' }
+              : { scale: 0.98, filter: 'brightness(0.42) saturate(0.6)' }
+          }
+          transition={{ type: 'spring', stiffness: 140, damping: 16 }}
+          whileHover={{ scale: lit ? 1.05 : 1.03 }}
+        >
+          <img
+            src="/images/diwali/diya.png"
+            alt="Diya oil lamp"
+            className="h-full w-full object-cover"
+            style={{
+              maskImage: 'radial-gradient(circle, black 62%, transparent 78%)',
+              WebkitMaskImage: 'radial-gradient(circle, black 62%, transparent 78%)',
+            }}
+          />
+        </motion.div>
+        {/* extra flame glow when lit — central bloom */}
         <AnimatePresence>
           {lit && (
             <motion.div
-              initial={{ scaleY: 0, opacity: 0 }}
-              animate={{ scaleY: 1, opacity: 1 }}
-              exit={{ scaleY: 0, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 12 }}
-              className="absolute left-1/2 top-[14%] z-10 -translate-x-1/2 origin-bottom"
-              style={{ width: 22, height: 56 }}
-            >
-              {/* outer flame */}
-              <div
-                className="animate-flicker absolute inset-0"
-                style={{
-                  background:
-                    'linear-gradient(to top, rgba(251,146,60,1) 0%, rgba(251,191,36,1) 45%, rgba(255,247,200,0.9) 75%, rgba(255,255,255,0) 100%)',
-                  clipPath: 'ellipse(50% 100% at 50% 100%)',
-                  borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%',
-                  filter: 'blur(0.5px)',
-                  boxShadow: '0 0 24px rgba(251,191,36,0.8)',
-                }}
-              />
-              {/* hot inner core */}
-              <div
-                className="animate-flame-core absolute inset-x-[28%] bottom-[12%] top-[22%]"
-                style={{
-                  background:
-                    'linear-gradient(to top, rgba(255,160,40,1) 0%, rgba(255,237,160,1) 60%, rgba(255,255,255,0.95) 100%)',
-                  clipPath: 'ellipse(50% 100% at 50% 100%)',
-                  borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%',
-                }}
-              />
-            </motion.div>
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 14 }}
+              className="pointer-events-none absolute left-1/2 top-[38%] z-10 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(255,247,200,0.7) 0%, rgba(251,191,36,0.3) 40%, transparent 70%)',
+                filter: 'blur(8px)',
+              }}
+            />
           )}
         </AnimatePresence>
-
-        {/* ignition sparks */}
-        <div className="pointer-events-none absolute left-1/2 top-[20%] z-20 h-0 w-0">
-          <AnimatePresence>
-            {sparks.map((s) => (
-              <motion.div
-                key={s.id}
-                initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-                animate={{ x: s.dx, y: s.dy, opacity: 0, scale: 0.2 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.7, ease: 'easeOut' }}
-                style={{
-                  width: s.size,
-                  height: s.size,
-                  backgroundColor: '#fde047',
-                  borderRadius: '50%',
-                  boxShadow: '0 0 6px #fbbf24',
-                }}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {/* diya bowl (SVG) — always visible */}
-        <svg
-          viewBox="0 0 100 60"
-          className="relative z-0 w-32 sm:w-36"
-          style={{ height: 48 }}
-          preserveAspectRatio="xMidYMax meet"
-        >
-          <defs>
-            <linearGradient id="ldBody" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={lit ? '#f6b94b' : '#9a7a4b'} />
-              <stop offset="45%" stopColor={lit ? '#e08a1f' : '#6b4f2a'} />
-              <stop offset="100%" stopColor={lit ? '#7a3b0c' : '#3d2812'} />
-            </linearGradient>
-            <linearGradient id="ldRim" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={lit ? '#ffe7a3' : '#b8a070'} />
-              <stop offset="100%" stopColor={lit ? '#f0a32f' : '#7a6238'} />
-            </linearGradient>
-          </defs>
-          {/* rim / spout */}
-          <path d="M5 18 Q50 0 95 18 L88 24 Q50 12 12 24 Z" fill="url(#ldRim)" />
-          {/* bowl */}
-          <path d="M12 24 Q50 18 88 24 Q82 52 50 54 Q18 52 12 24 Z" fill="url(#ldBody)" />
-          {/* inner shadow */}
-          <ellipse cx="50" cy="26" rx="32" ry="6" fill="rgba(60,20,5,0.55)" />
-          {/* highlight */}
-          <path
-            d="M20 28 Q50 22 80 28 Q72 34 50 33 Q28 34 20 28 Z"
-            fill="rgba(255,240,200,0.25)"
-          />
-        </svg>
-
-        {/* hover hint */}
-        <span className="pointer-events-none absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-medium text-amber-300/70 transition group-hover:text-amber-200">
-          {lit ? 'Fir jalao ✨' : 'Dabao jalane ke liye'}
-        </span>
       </button>
-
-      {/* counter */}
-      <div className="mt-4 flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-xs text-amber-200">
-        <Flame className={`h-3.5 w-3.5 ${lit ? 'text-amber-400' : ''}`} />
-        {count} {count === 1 ? 'diya' : 'diye'} {lit ? 'jal rahe hain' : 'jale'}
-      </div>
     </div>
   )
 }

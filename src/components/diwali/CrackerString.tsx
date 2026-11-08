@@ -2,26 +2,24 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Flame } from 'lucide-react'
 
-const CRACKER_COUNT = 5
+const POPS = 5
 
 type Spark = {
   id: number
-  crackerIndex: number
   dx: number
   dy: number
   color: string
   size: number
 }
 
-const SPARK_COLORS = ['#fbbf24', '#f97316', '#ef4444', '#fde047', '#fff7ed']
+const SPARK_COLORS = ['#fbbf24', '#f97316', '#ef4444', '#fde047', '#fff7ed', '#ec4899']
 
 export default function CrackerString() {
   const [bursting, setBursting] = useState(false)
-  const [popped, setPopped] = useState<boolean[]>(Array(CRACKER_COUNT).fill(false))
+  const [popStep, setPopStep] = useState(0)
   const [sparks, setSparks] = useState<Spark[]>([])
-  const [count, setCount] = useState(0)
+  const [ringKey, setRingKey] = useState(0)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
   const sparkId = useRef(0)
 
@@ -33,189 +31,182 @@ export default function CrackerString() {
   const handleBurst = useCallback(() => {
     if (bursting) return
     setBursting(true)
-    setCount((c) => c + 1)
+    setPopStep(0)
+    setRingKey((k) => k + 1)
 
-    // reset all to unpopped first
-    setPopped(Array(CRACKER_COUNT).fill(false))
-
-    // pop bottom-to-top
-    for (let i = 0; i < CRACKER_COUNT; i++) {
+    for (let i = 0; i < POPS; i++) {
       const t = setTimeout(() => {
-        setPopped((prev) => {
-          const next = [...prev]
-          next[i] = true
-          return next
-        })
+        setPopStep(i + 1)
 
-        // spawn sparks for this cracker
-        const newSparks: Spark[] = Array.from({ length: 14 }, () => ({
+        // screen flash per pop — escalating color
+        const flashColors = [
+          'rgba(255,247,237,0.55)',
+          'rgba(253,224,71,0.5)',
+          'rgba(249,115,22,0.5)',
+          'rgba(239,68,68,0.5)',
+          'rgba(255,255,255,0.7)',
+        ]
+        window.dispatchEvent(
+          new CustomEvent('diwali:flash', {
+            detail: { color: flashColors[i], intensity: 0.6, duration: 180 },
+          }),
+        )
+
+        // spark burst from center
+        const newSparks: Spark[] = Array.from({ length: 16 }, () => ({
           id: sparkId.current++,
-          crackerIndex: i,
-          dx: (Math.random() * 90 - 45),
-          dy: -(20 + Math.random() * 60),
+          dx: (Math.random() * 130 - 65),
+          dy: -(30 + Math.random() * 90),
           color: SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)],
-          size: 2 + Math.random() * 3,
+          size: 2 + Math.random() * 4,
         }))
         setSparks((s) => [...s, ...newSparks])
-        // clean up these sparks shortly after
         const cleanT = setTimeout(() => {
           setSparks((s) => s.filter((sp) => !newSparks.some((ns) => ns.id === sp.id)))
-        }, 900)
+        }, 800)
         timers.current.push(cleanT)
 
-        // on the last cracker, launch sky fireworks + reset
-        if (i === CRACKER_COUNT - 1) {
+        // finale on last pop
+        if (i === POPS - 1) {
           const finalT = setTimeout(() => {
             window.dispatchEvent(
-              new CustomEvent('diwali:launch-firework', { detail: { count: 3 } }),
+              new CustomEvent('diwali:flash', {
+                detail: { color: 'rgba(255,255,255,0.8)', intensity: 0.85, duration: 320 },
+              }),
+            )
+            window.dispatchEvent(
+              new CustomEvent('diwali:launch-firework', { detail: { count: 4 } }),
             )
             setBursting(false)
-            setPopped(Array(CRACKER_COUNT).fill(false))
-          }, 700)
+            setPopStep(0)
+          }, 650)
           timers.current.push(finalT)
         }
-      }, i * 190)
+      }, i * 170)
       timers.current.push(t)
     }
   }, [bursting])
 
   return (
-    <div className="relative flex flex-col items-center gap-3">
-      {/* fuse flame at top while bursting */}
+    <div className="relative flex flex-col items-center">
+      {/* shockwave ring on start */}
       <AnimatePresence>
-        {bursting && (
+        {ringKey > 0 && bursting && (
           <motion.div
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0 }}
-            className="absolute left-1/2 top-[18px] z-20 -translate-x-1/2"
-          >
-            <div
-              className="animate-flicker h-5 w-3"
-              style={{
-                background: 'linear-gradient(to top, #f97316, #fde047, #fff)',
-                clipPath: 'ellipse(50% 100% at 50% 100%)',
-                filter: 'blur(0.3px)',
-                boxShadow: '0 0 12px rgba(251,191,36,0.9)',
-              }}
-            />
-          </motion.div>
+            key={ringKey}
+            initial={{ scale: 0, opacity: 0.8 }}
+            animate={{ scale: 3.4, opacity: 0 }}
+            transition={{ duration: 0.9, ease: 'easeOut' }}
+            className="pointer-events-none absolute left-1/2 top-1/2 z-20 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-orange-300"
+          />
         )}
       </AnimatePresence>
 
-      {/* the clickable cracker string */}
+      {/* sparks */}
+      <div className="pointer-events-none absolute left-1/2 top-1/2 z-30 h-0 w-0">
+        <AnimatePresence>
+          {sparks.map((s) => (
+            <motion.div
+              key={s.id}
+              initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+              animate={{ x: s.dx, y: s.dy, opacity: 0, scale: 0.2 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              style={{
+                width: s.size,
+                height: s.size,
+                backgroundColor: s.color,
+                borderRadius: '50%',
+                boxShadow: `0 0 ${s.size * 2.5}px ${s.color}`,
+              }}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* cracker medallion */}
       <button
         onClick={handleBurst}
         disabled={bursting}
-        aria-label="Patakhe jalao"
-        className="group relative flex h-44 w-32 flex-col items-center justify-center rounded-2xl pb-6 pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 disabled:cursor-wait sm:h-52 sm:w-36"
+        aria-label="Light the crackers"
+        className="group relative h-44 w-44 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/70 disabled:cursor-default sm:h-52 sm:w-52"
       >
-        {/* hanging rope — spans the cracker column */}
-        <div className="absolute left-1/2 top-6 bottom-8 w-[3px] -translate-x-1/2 rounded-full bg-amber-950/80" />
-
-        {/* crackers threaded on the rope — centered */}
-        <div className="relative z-10 flex flex-col items-center gap-1.5">
-          {Array.from({ length: CRACKER_COUNT }).map((_, i) => (
-            <Cracker key={i} index={i} popped={popped[i]} sparks={sparks.filter((s) => s.crackerIndex === i)} />
-          ))}
-        </div>
-
-        {/* hover hint */}
-        {!bursting && (
-          <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-medium text-amber-300/70 transition group-hover:text-amber-200">
-            Dabao jalane ke liye
-          </span>
-        )}
-        {bursting && (
-          <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-medium text-rose-300">
-            Chal rahe hain... 💥
-          </span>
-        )}
-      </button>
-
-      {/* counter */}
-      <div className="mt-4 flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-xs text-amber-200">
-        <Flame className="h-3.5 w-3.5" />
-        {count} baar patakhe chale
-      </div>
-    </div>
-  )
-}
-
-function Cracker({
-  index,
-  popped,
-  sparks,
-}: {
-  index: number
-  popped: boolean
-  sparks: Spark[]
-}) {
-  return (
-    <div className="relative flex items-center justify-center">
-      {/* the cracker cylinder — centered on the rope */}
-      <motion.div
-        className="relative z-10"
-        animate={popped ? { scale: [1, 1.25, 0], opacity: [1, 1, 0] } : { scale: 1, opacity: 1 }}
-        transition={{ duration: 0.3 }}
-      >
-        {/* cracker body */}
-        <div
-          className="h-7 w-6 rounded-sm"
+        {/* ambient glow — intensifies while bursting */}
+        <motion.div
+          className="absolute inset-0 rounded-full"
+          animate={
+            bursting
+              ? { opacity: [0.6, 1, 0.6], scale: [1, 1.12, 1] }
+              : { opacity: [0.4, 0.65, 0.4], scale: [1, 1.05, 1] }
+          }
+          transition={{ duration: bursting ? 0.4 : 3, repeat: Infinity, ease: 'easeInOut' }}
           style={{
-            background: 'linear-gradient(to right, #7f1d1d 0%, #dc2626 40%, #b91c1c 60%, #7f1d1d 100%)',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.5), inset 0 0 3px rgba(0,0,0,0.4)',
+            background: 'radial-gradient(circle, rgba(249,115,22,0.6) 0%, rgba(239,68,68,0) 70%)',
+            filter: 'blur(14px)',
+          }}
+        />
+        {/* ring border */}
+        <div
+          className="absolute inset-2 rounded-full"
+          style={{
+            background: 'conic-gradient(from 0deg, #ef4444, #f97316, #fbbf24, #ef4444, #fde047, #ef4444)',
+            padding: 2,
           }}
         >
-          {/* top cap */}
-          <div className="h-1.5 w-full rounded-t-sm bg-amber-950" />
-          {/* label stripe */}
-          <div className="mt-0.5 h-1 w-full bg-amber-400/80" />
-          {/* gold ring detail */}
-          <div className="mt-0.5 h-0.5 w-full bg-amber-600/60" />
+          <div className="h-full w-full rounded-full bg-[#0b0820]" />
         </div>
-        {/* fuse — only on the top cracker */}
-        {index === 0 && (
-          <div className="absolute -top-2 left-1/2 h-2 w-[2px] -translate-x-1/2 bg-amber-200/70" />
-        )}
-      </motion.div>
-
-      {/* flash + sparks when popped */}
-      <AnimatePresence>
-        {popped && (
-          <>
-            {/* flash */}
-            <motion.div
-              initial={{ opacity: 0.9, scale: 0 }}
-              animate={{ opacity: [0.9, 0.6, 0], scale: [0, 2.5, 3] }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.45 }}
-              className="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full"
-              style={{
-                background: 'radial-gradient(circle, #fff7ed 0%, #fde047 30%, #f97316 60%, transparent 80%)',
-                filter: 'blur(1px)',
-              }}
-            />
-            {/* sparks */}
-            {sparks.map((s) => (
+        {/* cracker image — shakes while bursting */}
+        <motion.div
+          className="absolute inset-3 overflow-hidden rounded-full"
+          animate={
+            bursting
+              ? { x: [0, -3, 3, -2, 2, 0], y: [0, 2, -2, 1, -1, 0], scale: [1, 1.04, 0.98, 1.03, 1] }
+              : { x: 0, y: 0, scale: 1 }
+          }
+          transition={{ duration: 0.18, repeat: bursting ? Infinity : 0 }}
+          whileHover={{ scale: 1.05 }}
+        >
+          <img
+            src="/images/diwali/crackers.png"
+            alt="Firecrackers"
+            className="h-full w-full object-cover"
+            style={{
+              maskImage: 'radial-gradient(circle, black 62%, transparent 78%)',
+              WebkitMaskImage: 'radial-gradient(circle, black 62%, transparent 78%)',
+            }}
+          />
+          {/* pop flash overlay on the image */}
+          <AnimatePresence>
+            {popStep > 0 && bursting && (
               <motion.div
-                key={s.id}
-                initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-                animate={{ x: s.dx, y: s.dy, opacity: 0, scale: 0.2 }}
-                transition={{ duration: 0.7, ease: 'easeOut' }}
-                className="absolute left-1/2 top-1/2"
+                key={popStep}
+                initial={{ opacity: 0.9 }}
+                animate={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="absolute inset-0 rounded-full"
                 style={{
-                  width: s.size,
-                  height: s.size,
-                  backgroundColor: s.color,
-                  borderRadius: '50%',
-                  boxShadow: `0 0 ${s.size * 2}px ${s.color}`,
+                  background: 'radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(253,224,71,0.5) 40%, transparent 70%)',
+                }}
+              />
+            )}
+          </AnimatePresence>
+        </motion.div>
+        {/* progress dots */}
+        {bursting && (
+          <div className="absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 gap-1">
+            {Array.from({ length: POPS }).map((_, i) => (
+              <div
+                key={i}
+                className="h-1.5 w-1.5 rounded-full transition-colors duration-200"
+                style={{
+                  backgroundColor: i < popStep ? '#fde047' : 'rgba(255,255,255,0.25)',
+                  boxShadow: i < popStep ? '0 0 6px #fde047' : 'none',
                 }}
               />
             ))}
-          </>
+          </div>
         )}
-      </AnimatePresence>
+      </button>
     </div>
   )
 }

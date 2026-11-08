@@ -228,9 +228,11 @@ export default function FireworksCanvas() {
 
     const tick = (now: number) => {
       const { w, h } = sizeRef.current
-      // Trail fade — semi-transparent dark rect creates motion trails
-      ctx.globalCompositeOperation = 'source-over'
-      ctx.fillStyle = 'rgba(7, 6, 20, 0.22)'
+      // Fade trails by erasing canvas alpha (destination-out) instead of
+      // painting a dark rect — this keeps the canvas transparent so the
+      // AI night-sky background shows through between particles.
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.18)'
       ctx.fillRect(0, 0, w, h)
 
       // Auto-launch — ambient, less frequent so interactions are the focus
