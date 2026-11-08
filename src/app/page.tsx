@@ -1,18 +1,18 @@
 'use client'
 
-import { Sparkles, Flame, Gift, MousePointerClick } from 'lucide-react'
+import { Sparkles, Gift, Flame, MousePointerClick, PartyPopper } from 'lucide-react'
 import FireworksCanvas from '@/components/diwali/FireworksCanvas'
 import SkyLanterns from '@/components/diwali/SkyLanterns'
 import SparklesLayer from '@/components/diwali/Sparkles'
 import Rangoli from '@/components/diwali/Rangoli'
-import Diya from '@/components/diwali/Diya'
-import WishCard from '@/components/diwali/WishCard'
+import InteractiveGift from '@/components/diwali/InteractiveGift'
+import CrackerString from '@/components/diwali/CrackerString'
+import LightableDiya from '@/components/diwali/LightableDiya'
 
 export default function Home() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-[#07061a] text-amber-50">
       {/* ===== Fixed background layers (night sky) ===== */}
-      {/* Deep gradient sky */}
       <div
         className="pointer-events-none fixed inset-0 z-0"
         style={{
@@ -20,7 +20,6 @@ export default function Home() {
             'radial-gradient(ellipse at 50% 0%, #1a1140 0%, #0d0a2a 35%, #07061a 70%), radial-gradient(ellipse at 50% 100%, #2a0e1a 0%, #07061a 60%)',
         }}
       />
-      {/* subtle warm horizon glow at bottom */}
       <div
         className="pointer-events-none fixed inset-x-0 bottom-0 z-[1] h-1/3"
         style={{
@@ -32,18 +31,18 @@ export default function Home() {
       {/* Stars + rising sparkles */}
       <SparklesLayer />
       {/* Floating sky lanterns */}
-      <SkyLanterns count={7} />
+      <SkyLanterns count={6} />
       {/* Interactive fireworks */}
       <FireworksCanvas />
 
       {/* ===== Foreground content ===== */}
       <div className="relative z-20 flex min-h-screen flex-col">
         {/* ---------- HERO ---------- */}
-        <header className="relative flex flex-col items-center justify-center px-4 pt-20 pb-24 text-center sm:pt-28 sm:pb-32">
+        <header className="relative flex flex-col items-center justify-center px-4 pt-16 pb-10 text-center sm:pt-24">
           {/* click hint */}
           <div className="animate-bob mb-6 inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/10 px-4 py-1.5 text-xs text-amber-200 backdrop-blur-sm sm:text-sm">
             <MousePointerClick className="h-3.5 w-3.5" />
-            Aasman pe click karke fireworks chalao
+            Neeche koi bhi dabao — man kare toh aasman pe bhi!
           </div>
 
           {/* main title */}
@@ -61,72 +60,56 @@ export default function Home() {
 
           {/* subtitle */}
           <p
-            className="animate-title-rise mt-5 max-w-2xl text-base text-amber-100/80 sm:text-lg md:text-xl"
+            className="animate-title-rise mt-5 max-w-xl text-base text-amber-100/80 sm:text-lg"
             style={{ animationDelay: '0.3s' }}
           >
             <span className="animate-text-glow inline-block font-semibold text-amber-300">
-              Shubh Deepavali
+              Click &amp; celebrate
             </span>
-            {' — '}may the festival of lights fill your life with brightness, joy and endless prosperity.
+            {' — '}tohfa kholo, patakhe jalao, diya roshan karo. Har click me ek chhota sa tyohaar.
           </p>
 
           {/* decorative ornaments row */}
-          <div className="animate-title-rise mt-8 flex items-center gap-3 opacity-90" style={{ animationDelay: '0.5s' }}>
+          <div className="animate-title-rise mt-6 flex items-center gap-3 opacity-90" style={{ animationDelay: '0.5s' }}>
             <span className="h-px w-10 bg-gradient-to-r from-transparent to-amber-400/60 sm:w-20" />
-            <Flame className="h-5 w-5 text-amber-400" />
+            <Sparkles className="h-4 w-4 text-amber-400" />
             <span className="text-amber-300/80 text-xs tracking-[0.4em] uppercase">Festival of Lights</span>
-            <Flame className="h-5 w-5 text-amber-400" />
+            <Sparkles className="h-4 w-4 text-amber-400" />
             <span className="h-px w-10 bg-gradient-to-l from-transparent to-amber-400/60 sm:w-20" />
-          </div>
-
-          {/* scroll hint */}
-          <div className="mt-16 flex flex-col items-center gap-2 text-amber-200/50">
-            <span className="text-xs uppercase tracking-widest">Apni wish banao</span>
-            <div className="animate-bob">
-              <Gift className="h-6 w-6 text-amber-400" />
-            </div>
           </div>
         </header>
 
-        {/* ---------- WISH BUILDER ---------- */}
-        <section className="relative flex flex-col items-center px-4 py-16 sm:py-24">
-          {/* rangoli behind the card */}
-          <div className="pointer-events-none absolute left-1/2 top-1/2 -z-0 hidden -translate-x-1/2 -translate-y-1/2 opacity-40 sm:block">
-            <Rangoli size={520} />
+        {/* ---------- INTERACTIVE OBJECTS ---------- */}
+        <section className="relative px-4 py-12 sm:py-16">
+          {/* rangoli backdrop */}
+          <div className="pointer-events-none absolute left-1/2 top-1/2 -z-0 hidden -translate-x-1/2 -translate-y-1/2 opacity-25 lg:block">
+            <Rangoli size={560} />
           </div>
 
-          <div className="relative z-10 mb-8 text-center">
+          <div className="relative z-10 mb-10 text-center">
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/10 px-4 py-1 text-xs text-amber-200">
-              <Sparkles className="h-3.5 w-3.5" />
-              Personalized Diwali Wish
+              <PartyPopper className="h-3.5 w-3.5" />
+              Kuch bhi dabao
             </div>
-            <h2 className="text-3xl font-bold text-amber-100 sm:text-4xl">
-              Apne loved ones ke liye <span className="text-amber-400">wish</span> banao
+            <h2 className="text-2xl font-bold text-amber-100 sm:text-3xl">
+              Teeno me maza <span className="text-amber-400">alag</span> hai
             </h2>
-            <p className="mt-2 text-sm text-amber-200/60 sm:text-base">
-              Naam likho, message choose karo, aur ek khoobsurat animated wish card banao.
-            </p>
           </div>
 
-          <WishCard />
-        </section>
-
-        {/* ---------- DIYA ROW ---------- */}
-        <section className="relative px-4 py-16">
-          <div className="mx-auto max-w-5xl">
-            <div className="mb-8 text-center">
-              <h3 className="text-2xl font-bold text-amber-100 sm:text-3xl">
-                Diya jalao, andhera hatao
-              </h3>
-              <p className="mt-1 text-sm text-amber-200/60">
-                Har diya ek umeed, ek khwahish, ek duaa hai.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-end justify-center gap-6 sm:gap-12">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Diya key={i} size={80 + (i % 2) * 20} delay={i * 0.2} />
-              ))}
-            </div>
+          {/* three interactive cards */}
+          <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-stretch justify-center gap-8 sm:flex-row sm:gap-6 lg:gap-12">
+            {/* gift */}
+            <InteractionCard label="Tohfa" icon={<Gift className="h-5 w-5" />} accent="rose">
+              <InteractiveGift />
+            </InteractionCard>
+            {/* crackers */}
+            <InteractionCard label="Patakhe" icon={<Flame className="h-5 w-5" />} accent="orange">
+              <CrackerString />
+            </InteractionCard>
+            {/* diya */}
+            <InteractionCard label="Diya" icon={<Sparkles className="h-5 w-5" />} accent="amber">
+              <LightableDiya />
+            </InteractionCard>
           </div>
         </section>
 
@@ -139,7 +122,7 @@ export default function Home() {
               <Flame className="h-4 w-4" />
             </div>
             <p className="max-w-md text-xs text-amber-200/50">
-              Made with light, love and a whole lot of patakhas. Click the sky to launch more fireworks.
+              Har click ek tyohaar. Tohfa kholo, patakhe jalao, diya roshan karo — aur aasman pe click karke fireworks bhi chalao.
             </p>
             <p className="text-[11px] text-amber-200/30">
               © {new Date().getFullYear()} · Festival of Lights
@@ -147,6 +130,41 @@ export default function Home() {
           </div>
         </footer>
       </div>
+    </div>
+  )
+}
+
+function InteractionCard({
+  label,
+  icon,
+  accent,
+  children,
+}: {
+  label: string
+  icon: React.ReactNode
+  accent: 'rose' | 'orange' | 'amber'
+  children: React.ReactNode
+}) {
+  const accentMap = {
+    rose: 'border-rose-400/30 from-rose-500/10',
+    orange: 'border-orange-400/30 from-orange-500/10',
+    amber: 'border-amber-400/30 from-amber-500/10',
+  } as const
+  const iconColor = {
+    rose: 'text-rose-300',
+    orange: 'text-orange-300',
+    amber: 'text-amber-300',
+  } as const
+
+  return (
+    <div
+      className={`relative flex flex-1 flex-col items-center rounded-2xl border ${accentMap[accent]} bg-gradient-to-b to-transparent px-4 py-6 backdrop-blur-sm sm:px-6`}
+    >
+      <div className={`mb-6 inline-flex items-center gap-1.5 rounded-full border ${accentMap[accent]} bg-slate-950/40 px-3 py-1 text-xs font-medium ${iconColor[accent]}`}>
+        {icon}
+        {label}
+      </div>
+      {children}
     </div>
   )
 }

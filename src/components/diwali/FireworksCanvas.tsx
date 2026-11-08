@@ -233,8 +233,8 @@ export default function FireworksCanvas() {
       ctx.fillStyle = 'rgba(7, 6, 20, 0.22)'
       ctx.fillRect(0, 0, w, h)
 
-      // Auto-launch
-      if (now - lastLaunchRef.current > 1100 + Math.random() * 1400) {
+      // Auto-launch — ambient, less frequent so interactions are the focus
+      if (now - lastLaunchRef.current > 3200 + Math.random() * 2800) {
         lastLaunchRef.current = now
         launchRocket()
       }
@@ -322,10 +322,24 @@ export default function FireworksCanvas() {
       setTimeout(() => launchRocket(), 650)
     }, 400)
 
+    // Listen for external firework triggers (from cracker / diya clicks)
+    const handleExternal = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { x?: number; y?: number; count?: number } | undefined
+      const { w, h } = sizeRef.current
+      const x = detail?.x ?? Math.random() * w
+      const y = detail?.y ?? h * (0.15 + Math.random() * 0.25)
+      const count = detail?.count ?? 1
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => launchRocket(x + (Math.random() * 120 - 60), y + (Math.random() * 80 - 40)), i * 220)
+      }
+    }
+    window.addEventListener('diwali:launch-firework', handleExternal)
+
     return () => {
       window.removeEventListener('resize', resize)
       canvas.removeEventListener('click', handleClick)
       canvas.removeEventListener('touchstart', handleTouch)
+      window.removeEventListener('diwali:launch-firework', handleExternal)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       clearTimeout(initialVolley)
     }
