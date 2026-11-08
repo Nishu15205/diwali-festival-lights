@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { TapPulse, Sunburst, ExpandingRings } from './Effects'
 
 const POPS = 5
 
@@ -13,93 +14,113 @@ type Spark = {
   size: number
 }
 
-const SPARK_COLORS = ['#fbbf24', '#f97316', '#ef4444', '#fde047', '#fff7ed', '#ec4899']
+const SPARK_COLORS = ['#fbbf24', '#f97316', '#ef4444', '#fde047', '#fff7ed', '#ec4899', '#22d3ee']
+const POP_FLASH = [
+  'rgba(255,247,237,0.6)',
+  'rgba(253,224,71,0.55)',
+  'rgba(249,115,22,0.55)',
+  'rgba(239,68,68,0.55)',
+  'rgba(255,255,255,0.75)',
+]
+const POP_RING = ['#fff7ed', '#fde047', '#f97316', '#ef4444', '#ffffff']
 
 export default function CrackerString() {
   const [bursting, setBursting] = useState(false)
   const [popStep, setPopStep] = useState(0)
   const [sparks, setSparks] = useState<Spark[]>([])
-  const [ringKey, setRingKey] = useState(0)
+  const [popRings, setPopRings] = useState<number[]>([])
+  const [finaleKey, setFinaleKey] = useState(0)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
   const sparkId = useRef(0)
-
-  const clearTimers = () => {
-    timers.current.forEach(clearTimeout)
-    timers.current = []
-  }
 
   const handleBurst = useCallback(() => {
     if (bursting) return
     setBursting(true)
     setPopStep(0)
-    setRingKey((k) => k + 1)
+    setPopRings([])
 
     for (let i = 0; i < POPS; i++) {
       const t = setTimeout(() => {
         setPopStep(i + 1)
+        // add a per-pop ring (keyed by step)
+        setPopRings((r) => [...r, i])
 
-        // screen flash per pop — escalating color
-        const flashColors = [
-          'rgba(255,247,237,0.55)',
-          'rgba(253,224,71,0.5)',
-          'rgba(249,115,22,0.5)',
-          'rgba(239,68,68,0.5)',
-          'rgba(255,255,255,0.7)',
-        ]
+        // screen flash per pop
         window.dispatchEvent(
           new CustomEvent('diwali:flash', {
-            detail: { color: flashColors[i], intensity: 0.6, duration: 180 },
+            detail: { color: POP_FLASH[i], intensity: 0.65, duration: 190 },
           }),
         )
 
-        // spark burst from center
-        const newSparks: Spark[] = Array.from({ length: 16 }, () => ({
+        // bigger spark burst — 22 sparks
+        const newSparks: Spark[] = Array.from({ length: 22 }, () => ({
           id: sparkId.current++,
-          dx: (Math.random() * 130 - 65),
-          dy: -(30 + Math.random() * 90),
+          dx: (Math.random() * 160 - 80),
+          dy: -(40 + Math.random() * 120),
           color: SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)],
-          size: 2 + Math.random() * 4,
+          size: 2 + Math.random() * 5,
         }))
         setSparks((s) => [...s, ...newSparks])
         const cleanT = setTimeout(() => {
           setSparks((s) => s.filter((sp) => !newSparks.some((ns) => ns.id === sp.id)))
-        }, 800)
+        }, 850)
         timers.current.push(cleanT)
 
-        // finale on last pop
         if (i === POPS - 1) {
           const finalT = setTimeout(() => {
+            // GRAND FINALE for the cracker itself
+            setFinaleKey((k) => k + 1)
             window.dispatchEvent(
               new CustomEvent('diwali:flash', {
-                detail: { color: 'rgba(255,255,255,0.8)', intensity: 0.85, duration: 320 },
+                detail: { color: 'rgba(255,255,255,0.85)', intensity: 0.95, duration: 360 },
               }),
             )
             window.dispatchEvent(
-              new CustomEvent('diwali:launch-firework', { detail: { count: 4 } }),
+              new CustomEvent('diwali:launch-firework', { detail: { count: 5 } }),
             )
+            window.dispatchEvent(new CustomEvent('diwali:activated', { detail: { type: 'crackers' } }))
             setBursting(false)
             setPopStep(0)
+            setTimeout(() => setPopRings([]), 1200)
           }, 650)
           timers.current.push(finalT)
         }
-      }, i * 170)
+      }, i * 175)
       timers.current.push(t)
     }
   }, [bursting])
 
   return (
     <div className="relative flex flex-col items-center">
-      {/* shockwave ring on start */}
+      {/* finale explosion — sunburst + 4 rings */}
       <AnimatePresence>
-        {ringKey > 0 && bursting && (
-          <motion.div
-            key={ringKey}
-            initial={{ scale: 0, opacity: 0.8 }}
-            animate={{ scale: 3.4, opacity: 0 }}
-            transition={{ duration: 0.9, ease: 'easeOut' }}
-            className="pointer-events-none absolute left-1/2 top-1/2 z-20 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-orange-300"
-          />
+        {finaleKey > 0 && (
+          <>
+            <Sunburst key={`fs-${finaleKey}`} rays={18} length={300} color="#fff7ed" duration={1.1} />
+            <ExpandingRings
+              key={`fr-${finaleKey}`}
+              count={4}
+              colors={['#ffffff', '#fde047', '#f97316', '#ef4444']}
+              size={170}
+              maxScale={4.2}
+              duration={1.1}
+            />
+          </>
         )}
+      </AnimatePresence>
+
+      {/* per-pop rings */}
+      <AnimatePresence>
+        {popRings.map((step) => (
+          <motion.div
+            key={`popring-${finaleKey}-${step}`}
+            className="pointer-events-none absolute left-1/2 top-1/2 z-20 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
+            style={{ borderColor: POP_RING[step % POP_RING.length] }}
+            initial={{ scale: 0, opacity: 0.85 }}
+            animate={{ scale: 3, opacity: 0 }}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
+          />
+        ))}
       </AnimatePresence>
 
       {/* sparks */}
@@ -111,7 +132,7 @@ export default function CrackerString() {
               initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
               animate={{ x: s.dx, y: s.dy, opacity: 0, scale: 0.2 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.7, ease: 'easeOut' }}
+              transition={{ duration: 0.75, ease: 'easeOut' }}
               style={{
                 width: s.size,
                 height: s.size,
@@ -131,15 +152,18 @@ export default function CrackerString() {
         aria-label="Light the crackers"
         className="group relative h-44 w-44 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300/70 disabled:cursor-default sm:h-52 sm:w-52"
       >
-        {/* ambient glow — intensifies while bursting */}
+        {/* idle tap-pulse cue */}
+        {!bursting && <TapPulse color="rgba(249,115,22,0.5)" />}
+
+        {/* ambient glow */}
         <motion.div
           className="absolute inset-0 rounded-full"
           animate={
             bursting
-              ? { opacity: [0.6, 1, 0.6], scale: [1, 1.12, 1] }
-              : { opacity: [0.4, 0.65, 0.4], scale: [1, 1.05, 1] }
+              ? { opacity: [0.6, 1, 0.6], scale: [1, 1.14, 1] }
+              : { opacity: [0.4, 0.7, 0.4], scale: [1, 1.06, 1] }
           }
-          transition={{ duration: bursting ? 0.4 : 3, repeat: Infinity, ease: 'easeInOut' }}
+          transition={{ duration: bursting ? 0.35 : 3, repeat: Infinity, ease: 'easeInOut' }}
           style={{
             background: 'radial-gradient(circle, rgba(249,115,22,0.6) 0%, rgba(239,68,68,0) 70%)',
             filter: 'blur(14px)',
@@ -155,15 +179,15 @@ export default function CrackerString() {
         >
           <div className="h-full w-full rounded-full bg-[#0b0820]" />
         </div>
-        {/* cracker image — shakes while bursting */}
+        {/* cracker image — shakes violently while bursting */}
         <motion.div
           className="absolute inset-3 overflow-hidden rounded-full"
           animate={
             bursting
-              ? { x: [0, -3, 3, -2, 2, 0], y: [0, 2, -2, 1, -1, 0], scale: [1, 1.04, 0.98, 1.03, 1] }
+              ? { x: [0, -4, 4, -3, 3, -2, 0], y: [0, 3, -3, 2, -2, 1, 0], scale: [1, 1.05, 0.96, 1.04, 0.98, 1.02, 1] }
               : { x: 0, y: 0, scale: 1 }
           }
-          transition={{ duration: 0.18, repeat: bursting ? Infinity : 0 }}
+          transition={{ duration: 0.16, repeat: bursting ? Infinity : 0 }}
           whileHover={{ scale: 1.05 }}
         >
           <img
@@ -180,12 +204,12 @@ export default function CrackerString() {
             {popStep > 0 && bursting && (
               <motion.div
                 key={popStep}
-                initial={{ opacity: 0.9 }}
+                initial={{ opacity: 0.95 }}
                 animate={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
+                transition={{ duration: 0.22 }}
                 className="absolute inset-0 rounded-full"
                 style={{
-                  background: 'radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(253,224,71,0.5) 40%, transparent 70%)',
+                  background: 'radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(253,224,71,0.5) 40%, transparent 70%)',
                 }}
               />
             )}

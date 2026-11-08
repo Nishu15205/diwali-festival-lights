@@ -8,6 +8,7 @@ import InteractiveGift from '@/components/diwali/InteractiveGift'
 import CrackerString from '@/components/diwali/CrackerString'
 import LightableDiya from '@/components/diwali/LightableDiya'
 import ScreenFlash from '@/components/diwali/ScreenFlash'
+import FinaleManager from '@/components/diwali/FinaleManager'
 
 export default function Home() {
   return (
@@ -45,6 +46,8 @@ export default function Home() {
       <FireworksCanvas />
       {/* Screen-wide flash overlay for tagde click feedback */}
       <ScreenFlash />
+      {/* Grand finale after all three objects are activated */}
+      <FinaleManager />
 
       {/* ===== Foreground content ===== */}
       <div className="relative z-20 flex min-h-screen flex-col">

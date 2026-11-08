@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { TapPulse, Sunburst, ExpandingRings, FloatingSparkles } from './Effects'
 
 const WISHES = [
   'Happy Diwali! May your life be filled with light and laughter.',
@@ -32,45 +33,55 @@ export default function InteractiveGift() {
   const [opened, setOpened] = useState(false)
   const [wish, setWish] = useState(WISHES[0])
   const [confetti, setConfetti] = useState<Piece[]>([])
-  const [ringKey, setRingKey] = useState(0)
+  const [burstKey, setBurstKey] = useState(0)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const idRef = useRef(0)
+
+  const spawnConfetti = useCallback((count: number, yBoost: number, delayBase: number) => {
+    const pieces: Piece[] = Array.from({ length: count }, () => ({
+      id: idRef.current++,
+      x: (Math.random() * 30 - 15),
+      dx: (Math.random() * 300 - 150),
+      dy: -(160 + Math.random() * 240) + yBoost,
+      rotate: (Math.random() * 900 - 450),
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      size: 7 + Math.random() * 10,
+      delay: delayBase + Math.random() * 100,
+      shape: Math.random() > 0.5 ? 'rect' : 'circle',
+    }))
+    setConfetti((c) => [...c, ...pieces])
+    setTimeout(() => {
+      setConfetti((c) => c.filter((p) => !pieces.some((np) => np.id === p.id)))
+    }, 2400)
+  }, [])
 
   const handleOpen = useCallback(() => {
     if (opened) return
     setWish(WISHES[Math.floor(Math.random() * WISHES.length)])
     setOpened(true)
-    setRingKey((k) => k + 1)
+    setBurstKey((k) => k + 1)
 
-    // big confetti burst — 48 pieces
-    const pieces: Piece[] = Array.from({ length: 48 }, () => ({
-      id: idRef.current++,
-      x: (Math.random() * 30 - 15),
-      dx: (Math.random() * 280 - 140),
-      dy: -(160 + Math.random() * 220),
-      rotate: (Math.random() * 900 - 450),
-      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-      size: 7 + Math.random() * 9,
-      delay: Math.random() * 100,
-      shape: Math.random() > 0.5 ? 'rect' : 'circle',
-    }))
-    setConfetti(pieces)
+    // first confetti wave — big
+    spawnConfetti(54, 0, 0)
+    // second wave — delayed, from slightly higher
+    setTimeout(() => spawnConfetti(36, -40, 0), 220)
 
-    // screen flash — golden
+    // golden screen flash
     window.dispatchEvent(
       new CustomEvent('diwali:flash', {
-        detail: { color: 'rgba(251,191,36,0.45)', intensity: 0.65, duration: 420 },
+        detail: { color: 'rgba(251,191,36,0.5)', intensity: 0.7, duration: 460 },
       }),
     )
     // sky fireworks
     window.dispatchEvent(
-      new CustomEvent('diwali:launch-firework', { detail: { count: 2 } }),
+      new CustomEvent('diwali:launch-firework', { detail: { count: 3 } }),
     )
+    // register activation for the grand finale
+    window.dispatchEvent(new CustomEvent('diwali:activated', { detail: { type: 'gift' } }))
 
     if (resetTimer.current) clearTimeout(resetTimer.current)
     resetTimer.current = setTimeout(() => setOpened(false), 4600)
-    setTimeout(() => setConfetti([]), 2400)
-  }, [opened])
+  }, [opened, spawnConfetti])
 
   return (
     <div className="relative flex flex-col items-center">
@@ -94,16 +105,21 @@ export default function InteractiveGift() {
         )}
       </AnimatePresence>
 
-      {/* shockwave ring */}
+      {/* burst effects: sunburst + multi-rings + floating sparkles */}
       <AnimatePresence>
-        {ringKey > 0 && (
-          <motion.div
-            key={ringKey}
-            initial={{ scale: 0, opacity: 0.9 }}
-            animate={{ scale: 3.2, opacity: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="pointer-events-none absolute left-1/2 top-1/2 z-20 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-300"
-          />
+        {burstKey > 0 && opened && (
+          <>
+            <Sunburst key={`sun-${burstKey}`} rays={16} length={260} color="#fbbf24" duration={1} />
+            <ExpandingRings
+              key={`ring-${burstKey}`}
+              count={3}
+              colors={['#fbbf24', '#f97316', '#fff7ed']}
+              size={150}
+              maxScale={3.8}
+              duration={0.95}
+            />
+            <FloatingSparkles key={`spark-${burstKey}`} count={16} color="#fde047" />
+          </>
         )}
       </AnimatePresence>
 
@@ -135,10 +151,13 @@ export default function InteractiveGift() {
         aria-label="Open the gift"
         className="group relative h-44 w-44 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 sm:h-52 sm:w-52"
       >
+        {/* idle tap-pulse cue */}
+        {!opened && <TapPulse color="rgba(251,191,36,0.5)" />}
+
         {/* ambient glow */}
         <motion.div
           className="absolute inset-0 rounded-full"
-          animate={{ opacity: [0.45, 0.75, 0.45], scale: [1, 1.06, 1] }}
+          animate={{ opacity: [0.45, 0.8, 0.45], scale: [1, 1.06, 1] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
           style={{
             background: 'radial-gradient(circle, rgba(251,146,60,0.55) 0%, rgba(251,146,60,0) 70%)',
@@ -149,18 +168,17 @@ export default function InteractiveGift() {
         <div
           className="absolute inset-2 rounded-full"
           style={{
-            background:
-              'conic-gradient(from 0deg, #fbbf24, #f97316, #ef4444, #fbbf24, #fde047, #fbbf24)',
+            background: 'conic-gradient(from 0deg, #fbbf24, #f97316, #ef4444, #fbbf24, #fde047, #fbbf24)',
             padding: 2,
           }}
         >
           <div className="h-full w-full rounded-full bg-[#0b0820]" />
         </div>
-        {/* gift image — masked to fade edges */}
+        {/* gift image — masked */}
         <motion.div
           className="absolute inset-3 overflow-hidden rounded-full"
-          animate={opened ? { scale: [1, 1.12, 1] } : { scale: 1 }}
-          transition={{ duration: 0.5 }}
+          animate={opened ? { scale: [1, 1.14, 0.96, 1.03, 1], rotate: [0, -4, 4, -2, 0] } : { scale: 1, rotate: 0 }}
+          transition={{ duration: 0.7 }}
           whileHover={{ scale: 1.05 }}
         >
           <img
@@ -174,9 +192,12 @@ export default function InteractiveGift() {
           />
         </motion.div>
         {/* shimmer sheen on hover */}
-        <div className="pointer-events-none absolute inset-3 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{
-          background: 'linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%)',
-        }} />
+        <div
+          className="pointer-events-none absolute inset-3 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          style={{
+            background: 'linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%)',
+          }}
+        />
       </button>
     </div>
   )
