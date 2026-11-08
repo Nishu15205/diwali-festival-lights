@@ -29,7 +29,7 @@ type Piece = {
   shape: 'rect' | 'circle'
 }
 
-export default function InteractiveGift() {
+export default function InteractiveGift({ name = '' }: { name?: string }) {
   const [opened, setOpened] = useState(false)
   const [wish, setWish] = useState(WISHES[0])
   const [confetti, setConfetti] = useState<Piece[]>([])
@@ -97,9 +97,9 @@ export default function InteractiveGift() {
             className="absolute -top-6 z-40 w-60 rounded-2xl border border-amber-300/50 bg-gradient-to-br from-amber-500/25 via-orange-500/20 to-rose-500/20 px-4 py-3 text-center text-sm font-medium text-amber-50 shadow-[0_0_40px_rgba(251,146,60,0.5)] backdrop-blur-md sm:w-72 sm:text-base"
           >
             <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.3em] text-amber-300/80">
-              A wish for you
+              {name ? `For ${name}` : 'A wish for you'}
             </span>
-            {wish}
+            {name ? `Dear ${name}, ${wish}` : wish}
             <span className="absolute -bottom-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-b border-r border-amber-300/50 bg-orange-500/20" />
           </motion.div>
         )}
